@@ -1,0 +1,68 @@
+#
+# Written by:
+# -----
+# Rhyme Yuan
+#
+# 2015-06-29
+# -----
+# rm(list=ls())
+
+# data reading
+train = read.csv("F:/training.csv",header=T,col.names=c('height','lenght','area','eccen','p_black','p_and','mean_tr','blackpix','blackand','wb_trans','class_num'))
+test = read.csv("F:/testing.csv",header=T,col.names=c('height','lenght','area','eccen','p_black','p_and','mean_tr','blackpix','blackand','wb_trans'))
+
+# Naive Bayes
+Labels=as.numeric(train$class_num)
+
+# Parameter Estimation
+NB_Parameter_Estimation=function(dataSet,Labels){
+  N=length(Labels)
+  pi=rep(NA,5)
+  pi[1]=sum(Labels==1)/N
+  pi[2]=sum(Labels==2)/N
+  pi[3]=sum(Labels==3)/N
+  pi[4]=sum(Labels==4)/N
+  pi[5]=sum(Labels==5)/N
+  mu_mat=matrix(NA,nrow=5,ncol=10)
+  sig_mat=matrix(NA,nrow=5,ncol=10)
+  for(i in 1:10){
+    for(j in 1:5){
+      mu_mat[j,i]=mean(dataSet[Labels==j,i])
+    } 
+  } 
+  for(i in 1:10){
+    for(j in 1:5){
+      sig_mat[j,i]=var(dataSet[Labels==j,i])
+    } 
+  }
+  list(pi=pi,mu_mat=mu_mat,sig_mat=sig_mat)
+}
+
+# Parameters Estimation
+Para=NB_Parameter_Estimation(train[,1:10],Labels)
+
+# Naive Bayes Classifier
+NB=function(x){
+  delta=rep(NA,5)
+  for(i in 1:5){
+    delta[i]=log(Para$pi[i])-sum(log(sqrt(Para$sig_mat[i,])))-1/2*sum((x-Para$mu_mat[i,])^2/Para$sig_mat[i,])
+  }
+  result=which(delta==max(delta))
+  result
+}
+
+# 
+NBTest=function(dataSet,Labels){
+  errorCount=0
+  N=length(Labels)
+  for(i in 1:N){
+    result=NB(dataSet[i,])
+    if(result!=Labels[i]) errorCount=errorCount+1
+    cat("The Classifier came back with: ",result,"The real answer is: ",Labels[i],"\n")
+  }
+  ErrorRate=errorCount/N
+  cat("Trainingg Error Rate: ",ErrorRate,"\n")
+}
+
+#
+NBTest(train[,1:10],Labels)

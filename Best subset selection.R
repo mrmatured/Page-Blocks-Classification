@@ -1,0 +1,80 @@
+rm(list=ls())
+#Linear Model Selection and Regularization
+#Auther:Zhongguang Ji
+#Best subset selection
+#Data Simulation
+X=cbind(x1=rnorm(200), x2=rnorm(200), x3=rnorm(200), x4=rnorm(200),
+        x5=rnorm(200), x6=rnorm(200), x7=rnorm(200), x8=rnorm(200),
+        x9=rnorm(200), x9=rnorm(200))
+Y=X[,1]-0.5*X[,3]+0.2*X[,7]
+Y=Y+rnorm(200)
+#CV
+CV=function(X,Y,index,set,k){
+  X=cbind(rep(1,dim(X)[1]),X[,set])
+  CV_k=0
+  for(i in 1:k){
+    train=index!=i
+    beta=solve(t(X[train,])%*%X[train,])%*%t(X[train,])%*%Y[train]
+    pre_k=X[!train,]%*%beta
+    MSE=sum((pre_k-Y[!train])^2)/sum(!train)
+    #print(MSE)
+    CV_k=CV_k+MSE
+  }
+  CV_k=CV_k/k
+  CV_k
+}
+#
+RSS=function(X,Y,set){
+  X=cbind(rep(1,dim(X)[1]),X[,set])
+  beta=solve(t(X)%*%X)%*%t(X)%*%Y
+  pre=X%*%beta
+  RSS=sum((pre-Y)^2)
+  RSS
+}
+#
+par(mfrow=c(1,2))
+#
+RSS_best=function(X,Y){
+  p=dim(X)[2]
+  best_set=list(model=0)
+  RSS_best=rep(NA,p)
+  for(j in 1:p){
+    subset=combn(c(1:p),j)
+    num_models=dim(subset)[2]
+    RSS_subset=rep(NA,num_models)
+    for(jj in 1:num_models){
+      RSS_subset[jj]=RSS(X,Y,set=subset[,jj])
+    }
+    RSS_best[j]=min(RSS_subset)
+    model_index=which(RSS_subset==min(RSS_subset))
+    best_set=c(best_set,list(model=subset[,model_index]))
+  }
+  plot(RSS_best,type="b",col="4",xlab="Number of Predictors",
+       ylab="Residual Sum of Squares")
+  best_set
+}
+#
+set=RSS_best(X,Y)
+#
+CV_best=function(X,Y,best_set,k){
+  n=dim(X)[1]
+  p=length(best_set)
+  index=NULL
+  for(i in 1:ceiling(n/k)){
+    index=c(index,sample(c(1:k),k,F))
+  }
+  index=index[1:n]
+  CV_k=rep(NA,p-1)
+  for(j in 2:p){
+    CV_k[j-1]=CV(X,Y,index,best_set[[j]],k)
+  }
+  CV_k
+  print(CV_k)
+  plot(CV_k,col="4",type="b",xlab="Number of Predictors",
+       ylab="Cross-Validation Error")
+  best_index=which(CV_k==min(CV_k))
+  best_best_set=best_set[[best_index+1]]
+  cat("The best subset is : ",colnames(X)[best_best_set])
+}
+#
+CV_best(X,Y,set,10)
